@@ -1,0 +1,62 @@
+# To pivot a weekly file coming in, where the last two columns are replaced each week
+# Structure of the file: 
+# Store Nbr | Store Type Descr | City | State | Zip Code | 201938 POS Sales | 201938 POS Qty
+# Required format:
+# Week (2019xx) | Total Sales (Sum of POS Sales) | Total Qty (Sum of POS Qty)
+# At the top of the report, there's a header which will be truncated
+
+#Set working directory, where the file resides
+setwd('C:/Users/pushpindersingh/Desktop/')
+getwd()
+
+#Call library readxl to read XL file
+#install.packages("readxl")
+library(readxl)
+
+#Form the master dataset by reading the file
+pi_walmart <- read_excel('sample report.xls', range = "A15:G40000")
+
+#Need these variables later for grouping (storing header names)
+var_week = read_excel('sample report.xls')
+var_week = data.frame(var_week)
+
+#for later use
+week_sales <- var_week$...6[[14]]
+week_qty <- var_week$...7[[14]]
+
+b <- gsub(" ", '.',week_sales)
+b <- paste("X",b, sep = "")
+
+c <- gsub(" ", ".", week_qty)
+c <- paste("X", c, sep = "")
+
+#Call dplyr package
+#install.packages("dplyr")
+library(dplyr)
+
+pi_walmart_df = data.frame(pi_walmart)
+#new_data <- pi_walmart[-(1:13),]
+# file_headers <- new_data[,1]
+# file_headers
+# var_week = as.character(var_week)
+# var_week
+
+# the "YYYYWW" combination, which will be added as a constant column to the df
+week <- strsplit(week_sales, " ")[[1]][1]
+
+# Adding the constant year-week, which will be unique for each file
+pi_walmart_df_2 <- cbind(pi_walmart_df, week)
+
+# Grouping & Summarising data
+final <- 
+  select(pi_walmart_df_2, one_of(b,c),week) %>%
+  group_by(week) %>% 
+  summarise_all(list(sum), na.rm = TRUE)
+
+# Rename columns
+colnames(final) <- c("Week", "Total_Sales", "Total_Qty")
+
+# Write the file
+write.csv(final, 
+          'C:/Users/DT-045/Desktop//PI_Walmart_Weekly_Pivoted.csv',
+          row.names = FALSE)
